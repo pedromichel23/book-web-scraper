@@ -1,0 +1,34 @@
+scrapy shell
+scrapy crawl bookspider // teniendo el archivo bookspider.py
+fetch('url')
+response.css('article.product_pod')
+books = response.css('article.product_pod')
+len(books)
+book = books[0]
+book.css('h3 a::text').get()
+
+# Explicacion
+h3 a → es un selector CSS estándar.
+::text → es una extensión de los selectores de Scrapy.
+.get() → es un método de Scrapy para obtener el primer resultado
+
+.getall() → es un método de Scrapy para obtener todos resultados
+
+# Otro ejemplo
+book.css('.product_price .price_color::text').get()
+
+# Otro ejemplo
+book.css('h3 a').attrib['href']
+# dando como respuesta la url que tiene el enlace
+'catalogue/a-light-in-the-attic_1000/index.html'
+
+# comando para salir del scrapy shell
+exit
+
+#Otro ejemplo
+next_buttons = response.css('li.next a')
+next_btn = next_buttons[0]
+next_btn.css('a').attrib['href'] // 'catalogue/page-2.html'
+
+#Otra forma
+response.css('li.next a ::attr(href)').get() // 'catalogue/page-2.html'
