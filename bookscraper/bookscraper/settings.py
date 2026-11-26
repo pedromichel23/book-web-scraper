@@ -12,6 +12,10 @@ BOT_NAME = "bookscraper"
 SPIDER_MODULES = ["bookscraper.spiders"]
 NEWSPIDER_MODULE = "bookscraper.spiders"
 
+FEEDS = {
+    'bookdata.json': {'format': 'json'}
+}
+
 ADDONS = {}
 
 
@@ -60,6 +64,7 @@ DOWNLOAD_DELAY = 1
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    "bookscraper.pipelines.BookscraperPipeline": 300,
+   "bookscraper.pipelines.SaveToSQLitePipeline": 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)

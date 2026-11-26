@@ -80,3 +80,87 @@ class BookscraperPipeline:
 
 
         return item
+
+    
+import sqlite3
+
+class SaveToSQLitePipeline:
+
+    def __init__(self):
+
+        # Connect to SQLite database
+        self.conn = sqlite3.connect("books.db")
+
+        # Create cursor
+        self.cur = self.conn.cursor()
+
+        # Create books table if none exists
+        self.cur.execute("""
+        CREATE TABLE IF NOT EXISTS books (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            url TEXT,
+            title TEXT,
+            upc TEXT,
+            product_type TEXT,
+            price_excl_tax REAL,
+            price_incl_tax REAL,
+            tax REAL,
+            price REAL,
+            availability INTEGER,
+            num_reviews INTEGER,
+            stars INTEGER,
+            category TEXT,
+            description TEXT
+        )
+        """)
+
+        self.conn.commit()
+
+    def process_item(self, item, spider):
+
+        # Define insert statement
+        self.cur.execute("""
+            INSERT INTO books (
+                url,
+                title,
+                upc,
+                product_type,
+                price_excl_tax,
+                price_incl_tax,
+                tax,
+                price,
+                availability,
+                num_reviews,
+                stars,
+                category,
+                description
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            item["url"],
+            item["title"],
+            item["upc"],
+            item["product_type"],
+            item["price_excl_tax"],
+            item["price_incl_tax"],
+            item["tax"],
+            item["price"],
+            item["availability"],
+            item["num_reviews"],
+            item["stars"],
+            item["category"],
+            str(item["description"][0])
+        ))
+
+        # Commit changes
+        self.conn.commit()
+
+        return item
+
+    def close_spider(self, spider):
+
+        # Close cursor and connection
+        self.cur.close()
+        self.conn.close()
+
+
+
