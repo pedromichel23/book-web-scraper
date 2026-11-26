@@ -64,8 +64,29 @@ DOWNLOAD_DELAY = 1
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
    "bookscraper.pipelines.BookscraperPipeline": 300,
-   "bookscraper.pipelines.SaveToSQLitePipeline": 400,
+   "bookscraper.pipelines.SaveToDatabasePipeline": 400,
 }
+
+# Database repository
+BOOKS_REPOSITORY = (
+    "bookscraper.repositories.sqlite_repository.SQLiteBooksRepository"
+)
+
+BOOKS_REPOSITORY_KWARGS = {
+    "database": "books.db"
+}
+
+#BOOKS_REPOSITORY = (
+#    "bookscraper.repositories.postgres_repository.PostgreSQLBooksRepository"
+#)
+
+#Dar los datos para conectarte a postgresql
+#BOOKS_REPOSITORY_KWARGS = {
+#    "host": "localhost",
+#    "user": "root",
+#    "password": "",
+#    "database": "books"
+#}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

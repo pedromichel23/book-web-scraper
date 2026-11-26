@@ -5,162 +5,104 @@
 
 
 # useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
 
+from itemadapter import ItemAdapter
+from scrapy.utils.misc import load_object
 
 class BookscraperPipeline:
-    def process_item(self, item):
+
+    def process_item(self, item, spider):
         adapter = ItemAdapter(item)
 
-        # Strip all whitespaces from strings
-        field_names = adapter.field_names()
-        for field_name in field_names:
-            if field_name != 'description':
+        # Strip whitespaces
+        for field_name in adapter.field_names():
+            if field_name != "description":
                 value = adapter.get(field_name)
-                #print("############")
-                #print(value)
-                adapter[field_name] = value[0].strip()
+                if isinstance(value, (list, tuple)):
+                    value = value[0] if value else ""
+                if isinstance(value, str):
+                    adapter[field_name] = value.strip()
 
-        #Category & Product Type --> switch to lowercase
-        lowercase_keys = ['category', 'product_type']
-        for lowercase_key in lowercase_keys:
-            value = adapter.get(lowercase_key)
-            adapter[lowercase_key] = value.lower()
-
-        #Price --> convert to float
-        price_keys = ['price', 'price_excl_tax', 'price_incl_tax', 'tax']
-        for price_key in price_keys:
-            value = adapter.get(price_key)
-            #print("############")
-            #print(value)
-            value = value.replace('£', '')
-            #print("############")
-            #print(value)
+        # Category and product type
+        for key in ["category", "product_type"]:
+            value = adapter.get(key)
             if value:
-                adapter[price_key] = float(value)
-            else:
-                adapter[price_key] = 0.00
+                adapter[key] = value.lower()
 
-        #Availability --> extrac number of books in stock
-        availability_string = adapter.get('availability')
-        split_string_array = availability_string.split('(')
-        if len(split_string_array) < 2:
-            adapter['availability'] = 0
+        # Prices
+        price_keys = [
+            "price",
+            "price_excl_tax",
+            "price_incl_tax",
+            "tax"
+        ]
+
+        for key in price_keys:
+            value = adapter.get(key) or ""
+            value = value.replace("£", "")
+            adapter[key] = float(value) if value else 0.0
+
+        # Availability
+        availability = adapter.get("availability") or ""
+        parts = availability.split("(")
+        if len(parts) < 2:
+            adapter["availability"] = 0
         else:
-            availability_array = split_string_array[1].split(' ')
-            adapter['availability'] = int(availability_array[0])
-        '''
-        Otra forma usando regex en lugar de split
-        resultado = re.search(r'\((\d+)\s+available\)', texto)
-        if resultado:
-            cantidad = int(resultado.group(1))
-            print(cantidad)
-        '''
+            adapter["availability"] = int(parts[1].split()[0])
 
-        #Reviews --> convert string to number
-        num_reviews_string = adapter.get('num_reviews')
-        adapter['num_reviews'] = int(num_reviews_string)
+        # Reviews
+        adapter["num_reviews"] = int(
+            adapter.get("num_reviews") or 0
+        )
 
-        #Stars --> convert text to number
-        start_string = adapter.get('stars')
-        split_stars_array = start_string.split(' ')
-        stars_text_value = split_stars_array[1].lower()
-        if stars_text_value == 'zero':
-            adapter['stars'] = 0
-        elif stars_text_value == 'one':
-            adapter['stars'] = 1
-        elif stars_text_value == 'two':
-            adapter['stars'] = 2
-        elif stars_text_value == 'three':
-            adapter['stars'] = 3
-        elif stars_text_value == 'four':
-            adapter['stars'] = 4
-        elif stars_text_value == 'five':
-            adapter['stars'] = 5
-
+        # Stars
+        stars = adapter.get("stars") or ""
+        star_values = {
+            "zero": 0,
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5
+        }
+        parts = stars.split()
+        if len(parts) > 1:
+            adapter["stars"] = star_values.get(
+                parts[1].lower(), 0
+            )
 
         return item
 
-    
-import sqlite3
 
-class SaveToSQLitePipeline:
+class SaveToDatabasePipeline:
 
-    def __init__(self):
+    def __init__(self, repository):
+        self.repository = repository
 
-        # Connect to SQLite database
-        self.conn = sqlite3.connect("books.db")
-
-        # Create cursor
-        self.cur = self.conn.cursor()
-
-        # Create books table if none exists
-        self.cur.execute("""
-        CREATE TABLE IF NOT EXISTS books (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            url TEXT,
-            title TEXT,
-            upc TEXT,
-            product_type TEXT,
-            price_excl_tax REAL,
-            price_incl_tax REAL,
-            tax REAL,
-            price REAL,
-            availability INTEGER,
-            num_reviews INTEGER,
-            stars INTEGER,
-            category TEXT,
-            description TEXT
+    @classmethod
+    def from_crawler(cls, crawler):
+        # Load repository class from settings
+        repository_path = crawler.settings.get(
+            "BOOKS_REPOSITORY"
         )
-        """)
+        repository_class = load_object(repository_path)
 
-        self.conn.commit()
+        # Load repository configuration
+        repository_kwargs = crawler.settings.getdict(
+            "BOOKS_REPOSITORY_KWARGS"
+        )
+
+        # Instantiate concrete repository
+        repository = repository_class(**repository_kwargs)
+
+        # Inject dependency
+        return cls(repository)
 
     def process_item(self, item, spider):
-
-        # Define insert statement
-        self.cur.execute("""
-            INSERT INTO books (
-                url,
-                title,
-                upc,
-                product_type,
-                price_excl_tax,
-                price_incl_tax,
-                tax,
-                price,
-                availability,
-                num_reviews,
-                stars,
-                category,
-                description
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            item["url"],
-            item["title"],
-            item["upc"],
-            item["product_type"],
-            item["price_excl_tax"],
-            item["price_incl_tax"],
-            item["tax"],
-            item["price"],
-            item["availability"],
-            item["num_reviews"],
-            item["stars"],
-            item["category"],
-            str(item["description"][0])
-        ))
-
-        # Commit changes
-        self.conn.commit()
-
+        self.repository.save(item)
         return item
 
     def close_spider(self, spider):
-
-        # Close cursor and connection
-        self.cur.close()
-        self.conn.close()
-
+        self.repository.close()
 
 
