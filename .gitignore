@@ -2,3 +2,18 @@
 *.json
 bookdata.*
 *.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+
+# Environment variables
+.env
