@@ -4,6 +4,7 @@ aiosignal==1.4.0
 asttokens==3.0.2
 attrs==26.1.0
 Automat==25.4.16
+backports.zstd==1.8.1
 brotli==1.2.1
 certifi==2026.10.23
 cffi==2.1.1
@@ -42,6 +43,7 @@ pycparser==3.12
 PyDispatcher==2.0.7
 Pygments==2.21.0
 pyOpenSSL==26.4.0
+python-dotenv==1.2.4
 queuelib==1.10.0
 requests==2.34.2
 requests-file==3.0.1

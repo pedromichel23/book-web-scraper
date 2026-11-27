@@ -1,3 +1,6 @@
+Fake Headers and User Agents API
+https://scrapeops.io/
+
 scrapy shell
 scrapy crawl bookspider // teniendo el archivo bookspider.py
 fetch('url')
